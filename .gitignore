@@ -1,0 +1,15 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# file types
+*.csv
+*.docx
+*.jpeg
+*.pdf
+*.pptx
+
+# directories
+data/
+notes/
