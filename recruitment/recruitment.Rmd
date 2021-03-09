@@ -10,7 +10,13 @@ This script pulls email addresses from previous studies for purposes of recruiti
 
 The current status of the Google Sheet is: includes all emails from `2020-07-20-followup-extraclean.csv` who completed the followup in 2019. 
 
-# 
+# Recruitment process
+
+1. Pull email addresses from previous studies (i.e., what this script does).
+
+2. Paste emails into Google Sheet.
+
+3. Periodically download Qualtrics and SHQ data. In Google Sheet, check off Qualtrics and SHQ as they get completed, and fill in the SHQ ID on there for reference.
 
 
 <!-- ======================================================================= -->

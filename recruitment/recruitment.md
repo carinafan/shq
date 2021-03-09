@@ -2,6 +2,8 @@ SHQ Recruitment
 ================
 Last updated: March 09, 2021
 
+-   [Recruitment process](#recruitment-process)
+-   [Set up](#set-up)
 -   [Follow-up data](#follow-up-data)
     -   [As of 2020-07-20](#as-of-2020-07-20)
         -   [2019 responses](#responses)
@@ -14,6 +16,21 @@ know). I’ll try to think of something better in the future.
 
 The current status of the Google Sheet is: includes all emails from
 `2020-07-20-followup-extraclean.csv` who completed the followup in 2019.
+
+# Recruitment process
+
+1.  Pull email addresses from previous studies (i.e., what this script
+    does).
+
+2.  Paste emails into Google Sheet.
+
+3.  Periodically download Qualtrics and SHQ data. In Google Sheet, check
+    off Qualtrics and SHQ as they get completed, and fill in the SHQ ID
+    on there for reference.
+
+<!-- ======================================================================= -->
+
+# Set up
 
 ``` r
 library(lubridate)
