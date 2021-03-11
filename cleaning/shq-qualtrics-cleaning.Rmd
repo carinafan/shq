@@ -1,0 +1,113 @@
+---
+title: "Sea Hero Quest: Qualtrics Data Cleaning"
+date: "Last updated: `r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  github_document:
+    toc: true
+---
+
+
+<!-- ======================================================================= -->
+
+
+# Set up 
+
+```{r today}
+today = "2021-03-09"
+```
+
+```{r packages}
+library(BBmisc)
+library(writexl)
+library(magrittr)
+library(tidyverse)
+```
+
+```{r data}
+df.raw = paste0("../data/qualtrics/", today, "-shq-qualtrics-raw.csv") %>% 
+  read.csv()
+```
+
+## Rename variables
+
+```{r rename_variables}
+# retrieve column names from raw file exported from Qualtrics
+raw_column_name = names(df.raw)
+
+# clean up column names 
+clean_column_name = 
+	c("start_date", "end_date", "status", "IPaddress", "progress",
+	  "duration", "finished", "recorded_date", "responseID",
+	  "last_name", "first_name", "recipient_email", "external_reference", 
+	  "location_latitude", "location_longitude", "distribution_channel", 
+	  "user_language", "consent", "hardware", "recruitment", "recruitment_text",
+	  "age", "gender", "gender_text", "retired", "occupation",
+	  "edu_years", "edu_degree", "edu_degree_text",
+	  "eng_1st_lang", "age_learned_eng", "eng_fluency", "number_lang",
+	  "hand", "racialized", "racialized_text", "marginalized", "marginalized_text",
+	  "text_catch", "email", "do_not_contact", 
+	  "health_colourblind", "health_cholesterol", "health_hypertension",
+	  "health_heart", "health_cancer", "health_thyroid", "health_liver",
+	  "health_kidney", "health_diabetes", "health_arthritis", "health_neckback", 
+	  "health_sleep", "health_obese", "neuro_depression", "neuro_anxiety",
+	  "neuro_schiz", "neuro_stroke", "neuro_mci", "neuro_dementia", "neuro_seizures",
+	  "neuro_ms", "neuro_tbiMild", "neuro_tbiModSev", "neuro_braintumour", 
+	  "neuro_surgery", "neuro_parkinsons", "neuro_other", "neuro_other_text", 
+	  "sam_episodic_1", "sam_episodic_2", "sam_episodic_3", "sam_episodic_4", 
+	  "sam_episodic_5", "sam_episodic_6", "sam_episodic_7", "sam_episodic_8",
+	  "sam_semantic_1", "sam_semantic_2", "sam_semantic_3", 
+	  "sam_semantic_4", "sam_semantic_5", "sam_semantic_6",
+	  "sam_spatial_1", "sam_spatial_2", "sam_spatial_3", "catch1", 
+	  "sam_spatial_4", "sam_spatial_5", "sam_spatial_6",
+	  "sam_future_1", "sam_future_2", "sam_future_3", 
+	  "sam_future_4", "sam_future_5", "sam_future_6",
+	  "therapy", "therapy_text", "therapy_date", "therapy_type", "therapy_type_text",
+	  "phq_1", "phq_2", "phq_3", "phq_4", "phq_5", 
+	  "phq_6", "phq_7", "phq_8", "phq_9", "phq_function",
+	  "phq_covid", "covid", "covid_text", 
+	  "gift_card", "open_data", "shqID")
+
+# create data frame that matches raw to clean column names	
+
+varnames = cbind(raw_column_name, clean_column_name) %>% 
+  as.data.frame(stringsAsFactors = FALSE)
+
+varnames %>% 
+  write.csv(paste0("../data/qualtrics/", today, "-shq-qualtrics-varnames.csv"),
+                   row.names = FALSE)
+
+# rename variables
+
+df = df.raw
+
+names(df) = mapValues(x = names(df),
+                      from = raw_column_name,
+                      to = clean_column_name)
+```
+
+```{r}
+# change class of all variables from factors to strings
+df %<>% mutate_all(as.character)
+
+# remove rows that don't correspond to subject data
+df = df[-c(1,2), ]
+
+# add "SHQ" to subject IDs
+df$shqID %<>% paste0("SHQ", .)
+
+# export subject IDs and email addresses
+subjectID = df %>% select(shqID, email, gift_card, do_not_contact)
+
+subjectID %>% 
+  write_xlsx(paste0("../data/qualtrics/", today, "-shq-qualtrics-subjectID.xlsx"))
+```
+
+
+<!-- ======================================================================= -->
+
+
+# Session info
+
+```{r session_info, include = TRUE}
+sessionInfo()
+```
