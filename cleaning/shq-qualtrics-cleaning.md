@@ -4,6 +4,9 @@ Last updated: March 10, 2021
 
 -   [Set up](#set-up)
     -   [Rename variables](#rename-variables)
+-   [Exclusions](#exclusions)
+    -   [Duplicate emails](#duplicate-emails)
+-   [Export data](#export-data)
 -   [Session info](#session-info)
 
 <!-- ======================================================================= -->
@@ -117,9 +120,46 @@ df = df[-c(1,2), ]
 
 # add "SHQ" to subject IDs
 df$shqID %<>% paste0("SHQ", .)
+```
 
+<!-- ======================================================================= -->
+
+# Exclusions
+
+Before any exclusions, there are 6 survey responses.
+
+``` r
+# remove variables that don't need to be in cleaned file
+df %<>%
+    select(-c(start_date, end_date, status, IPaddress, progress, 
+              responseID, last_name, first_name, recipient_email, 
+              external_reference, location_latitude, location_longitude,
+              distribution_channel, user_language, consent, hardware))
+
+# create copy of dataframe for cleaning excluded rows later
+df.excluded = df
+```
+
+## Duplicate emails
+
+``` r
+exclude.email = df %>% 
+  filter(duplicated(email)) %>% 
+  select(shqID)
+```
+
+2 responses were duplicates emails and thus removed. For duplicates,
+only the first response was kept.
+
+<!-- ======================================================================= -->
+
+# Export data
+
+``` r
 # export subject IDs and email addresses
-subjectID = df %>% select(shqID, email, gift_card, do_not_contact)
+subjectID = df %>% select(shqID, email, gift_card, do_not_contact, open_data)
+
+# insert something heree about adding a column as to whether subject made it into clean data and can be compensated
 
 subjectID %>% 
   write_xlsx(paste0("../data/qualtrics/", today, "-shq-qualtrics-subjectID.xlsx"))
