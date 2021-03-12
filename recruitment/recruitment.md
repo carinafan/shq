@@ -1,12 +1,12 @@
 SHQ Recruitment
 ================
-Last updated: March 09, 2021
+Last updated: March 11, 2021
 
 -   [Recruitment process](#recruitment-process)
 -   [Set up](#set-up)
 -   [Follow-up data](#follow-up-data)
-    -   [As of 2020-07-20](#as-of-2020-07-20)
-        -   [2019 responses](#responses)
+    -   [2019 responses](#responses)
+    -   [2020 responses](#responses-1)
 -   [Session info](#session-info)
 
 This script pulls email addresses from previous studies for purposes of
@@ -14,8 +14,11 @@ recruiting for SHQ. For now, I’m going to copy + paste this list into a
 separate Google Sheet so an RA can help with compensation (un-ideal, I
 know). I’ll try to think of something better in the future.
 
-The current status of the Google Sheet is: includes all emails from
-`2020-07-20-followup-extraclean.csv` who completed the followup in 2019.
+The Google Sheet currently includes:
+
+-   all emails who completed the followup in 2019
+
+-   all emails who completed the followup in 2020
 
 # Recruitment process
 
@@ -31,6 +34,10 @@ The current status of the Google Sheet is: includes all emails from
 <!-- ======================================================================= -->
 
 # Set up
+
+``` r
+today = "2021-03-11"
+```
 
 ``` r
 library(lubridate)
@@ -70,19 +77,20 @@ library(tidyverse)
 ``` r
 # followup 
 
-df.flup = read.csv("../../online/sdam-followup/data/2020-07-20-followup-extraclean.csv") %>% 
+df.flup = paste0("../../online/sdam-followup/data/", today, "-followup-extraclean.csv") %>% 
+  read.csv() %>% 
   select(subjectID, recorded_date)
 
-df.flup.id = read_excel("../../online/sdam-followup/data/2020-07-20-followup-subjectID.xlsx")
+df.flup.id = paste0("../../online/sdam-followup/data/", today, "-followup-subjectID.xlsx") %>% 
+  read_excel() %>% 
+  as.data.frame()
 ```
 
 <!-- ======================================================================= -->
 
 # Follow-up data
 
-## As of 2020-07-20
-
-### 2019 responses
+## 2019 responses
 
 ``` r
 df.flup.2019 = df.flup %>% 
@@ -97,10 +105,34 @@ df.flup.2019 %<>%
 ``` r
 df.flup.2019$recorded_date = NULL
 
-df.flup.2019 %>% 
-  write.csv("emails/2020-07-20-flup-2019.csv",
+# df.flup.2019 %>% 
+#   write.csv("emails/2020-07-20-flup-2019.csv",
+#             row.names = FALSE)
+```
+
+There are 647 responses.
+
+## 2020 responses
+
+``` r
+df.flup.2020 = df.flup %>% 
+  filter(year(recorded_date) == 2020)
+
+df.flup.2020 %<>%
+  left_join(df.flup.id)
+```
+
+    ## Joining, by = "subjectID"
+
+``` r
+df.flup.2020$recorded_date = NULL
+
+df.flup.2020 %>% 
+  write.csv("emails/2021-03-11-flup-2020.csv",
             row.names = FALSE)
 ```
+
+There are 197 responses.
 
 <!-- ======================================================================= -->
 
