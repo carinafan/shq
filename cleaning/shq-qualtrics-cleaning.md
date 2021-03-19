@@ -1,11 +1,18 @@
 Sea Hero Quest: Qualtrics Data Cleaning
 ================
-Last updated: March 10, 2021
+Last updated: March 19, 2021
 
 -   [Set up](#set-up)
     -   [Rename variables](#rename-variables)
 -   [Exclusions](#exclusions)
+    -   [Hardware](#hardware)
     -   [Duplicate emails](#duplicate-emails)
+    -   [Catch questions](#catch-questions)
+    -   [Education](#education)
+    -   [Number of subjects for
+        analysis](#number-of-subjects-for-analysis)
+-   [Run cleaning script on excluded
+    participants](#run-cleaning-script-on-excluded-participants)
 -   [Export data](#export-data)
 -   [Session info](#session-info)
 
@@ -14,7 +21,7 @@ Last updated: March 10, 2021
 # Set up
 
 ``` r
-today = "2021-03-09"
+today = "2021-03-18"
 ```
 
 ``` r
@@ -51,7 +58,7 @@ library(tidyverse)
 
 ``` r
 df.raw = paste0("../data/qualtrics/", today, "-shq-qualtrics-raw.csv") %>% 
-  read.csv()
+  read.csv(stringsAsFactors = FALSE)
 ```
 
 ## Rename variables
@@ -71,7 +78,7 @@ clean_column_name =
       "edu_years", "edu_degree", "edu_degree_text",
       "eng_1st_lang", "age_learned_eng", "eng_fluency", "number_lang",
       "hand", "racialized", "racialized_text", "marginalized", "marginalized_text",
-      "text_catch", "email", "do_not_contact", 
+      "catch_text", "email", "do_not_contact", 
       "health_colourblind", "health_cholesterol", "health_hypertension",
       "health_heart", "health_cancer", "health_thyroid", "health_liver",
       "health_kidney", "health_diabetes", "health_arthritis", "health_neckback", 
@@ -83,7 +90,7 @@ clean_column_name =
       "sam_episodic_5", "sam_episodic_6", "sam_episodic_7", "sam_episodic_8",
       "sam_semantic_1", "sam_semantic_2", "sam_semantic_3", 
       "sam_semantic_4", "sam_semantic_5", "sam_semantic_6",
-      "sam_spatial_1", "sam_spatial_2", "sam_spatial_3", "catch1", 
+      "sam_spatial_1", "sam_spatial_2", "sam_spatial_3", "catch_MC", 
       "sam_spatial_4", "sam_spatial_5", "sam_spatial_6",
       "sam_future_1", "sam_future_2", "sam_future_3", 
       "sam_future_4", "sam_future_5", "sam_future_6",
@@ -97,10 +104,6 @@ clean_column_name =
 
 varnames = cbind(raw_column_name, clean_column_name) %>% 
   as.data.frame(stringsAsFactors = FALSE)
-
-varnames %>% 
-  write.csv(paste0("../data/qualtrics/", today, "-shq-qualtrics-varnames.csv"),
-                   row.names = FALSE)
 
 # rename variables
 
@@ -126,7 +129,7 @@ df$shqID %<>% paste0("SHQ", .)
 
 # Exclusions
 
-Before any exclusions, there are 6 survey responses.
+Before any exclusions, there are 27 survey responses.
 
 ``` r
 # remove variables that don't need to be in cleaned file
@@ -134,26 +137,112 @@ df %<>%
     select(-c(start_date, end_date, status, IPaddress, progress, 
               responseID, last_name, first_name, recipient_email, 
               external_reference, location_latitude, location_longitude,
-              distribution_channel, user_language, consent, hardware))
+              distribution_channel, user_language, consent))
 
 # create copy of dataframe for cleaning excluded rows later
 df.excluded = df
 ```
 
+## Hardware
+
+``` r
+exclude.hardware = df %>% 
+  filter(hardware == "No")
+
+df %<>% filter(!shqID %in% exclude.hardware$shqID)
+```
+
+2 participants did not have the hardware requirements to play Sea Hero
+Quest and thus did not complete the study.
+
 ## Duplicate emails
 
 ``` r
 exclude.email = df %>% 
-  filter(duplicated(email)) %>% 
-  select(shqID)
+  filter(email != "", duplicated(email))
+
+df %<>% filter(!shqID %in% exclude.email$shqID)
 ```
 
-2 responses were duplicates emails and thus removed. For duplicates,
+0 responses were duplicates emails and thus removed. For duplicates,
 only the first response was kept.
+
+## Catch questions
+
+There are 2 “catch” questions to ensure participants are paying
+attention.
+
+For the text catch, participants had to answer “What is 2 plus seven?”
+in a text box. For the multiple choice catch, participants had to select
+“Strongly Agree”.
+
+``` r
+# text catch
+df$catch_text %<>% tolower()
+
+exclude.catchT = df %>% 
+  filter(!grepl(pattern = "9|nine", x = catch_text))
+
+# MC catch
+exclude.catchM = df %>% 
+  filter(catch_MC != "Strongly Agree" | is.na(catch_MC))
+
+# exclude
+df %<>% filter(!shqID %in% exclude.catchT |
+               !shqID %in% exclude.catchM)
+```
+
+After excluding duplicate emails, 0 participants failed the text catch
+and 0 participants failed the multiple choice catch.
+
+## Education
+
+``` r
+df$edu_years %<>% as.numeric()
+
+exclude.edu = df %>% 
+  filter(edu_years < 9 | edu_years > 26)
+
+df %<>% filter(!shqID %in% exclude.edu$shqID)
+```
+
+After excluding duplicate emails and catch fails, 0 participants were
+excluded for having fewer than 9 or greater than 26 years of education.
+
+## Number of subjects for analysis
+
+After all exclusions, there are 25 subjects left for analysis.
+
+Check that the number of rows in the clean dataframe plus the number of
+rows in the excluded dataframe equal the number of rows in the raw data:
+
+``` r
+df.excluded %<>% filter(!shqID %in% df$shqID)
+nrow(df.raw) - 2 == nrow(df) + nrow(df.excluded)
+```
+
+    ## [1] TRUE
+
+<!-- ======================================================================= -->
+
+# Run cleaning script on excluded participants
+
+``` r
+# df.excluded %<>% filter(! subjectID %in% df$subjectID)
+# 
+# # run separate cleaning script
+# source("../cleaning/demo-cleaning-excluded.R")
+```
 
 <!-- ======================================================================= -->
 
 # Export data
+
+``` r
+varnames %>% 
+  write.csv(paste0("../data/qualtrics/", today, "-shq-qualtrics-varnames.csv"),
+                   row.names = FALSE)
+```
 
 ``` r
 # export subject IDs and email addresses
@@ -163,6 +252,10 @@ subjectID = df %>% select(shqID, email, gift_card, do_not_contact, open_data)
 
 subjectID %>% 
   write_xlsx(paste0("../data/qualtrics/", today, "-shq-qualtrics-subjectID.xlsx"))
+```
+
+``` r
+# df$email = NULL
 ```
 
 <!-- ======================================================================= -->
