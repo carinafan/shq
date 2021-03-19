@@ -11,8 +11,9 @@ Last updated: March 19, 2021
     -   [Education](#education)
     -   [Number of subjects for
         analysis](#number-of-subjects-for-analysis)
--   [Run cleaning script on excluded
-    participants](#run-cleaning-script-on-excluded-participants)
+-   [Demographics](#demographics)
+-   [SAM](#sam)
+-   [PHQ](#phq)
 -   [Export data](#export-data)
 -   [Session info](#session-info)
 
@@ -21,7 +22,7 @@ Last updated: March 19, 2021
 # Set up
 
 ``` r
-today = "2021-03-18"
+today = "2021-03-19"
 ```
 
 ``` r
@@ -123,13 +124,17 @@ df = df[-c(1,2), ]
 
 # add "SHQ" to subject IDs
 df$shqID %<>% paste0("SHQ", .)
+
+# set aside subject IDs and emails
+subjectID = df %>% 
+  select(shqID, email, gift_card, do_not_contact, open_data, recruitment, recruitment_text)
 ```
 
 <!-- ======================================================================= -->
 
 # Exclusions
 
-Before any exclusions, there are 27 survey responses.
+Before any exclusions, there are 31 survey responses.
 
 ``` r
 # remove variables that don't need to be in cleaned file
@@ -192,8 +197,8 @@ df %<>% filter(!shqID %in% exclude.catchT |
                !shqID %in% exclude.catchM)
 ```
 
-After excluding duplicate emails, 0 participants failed the text catch
-and 0 participants failed the multiple choice catch.
+After excluding duplicate emails, 1 participants failed the text catch
+and 1 participants failed the multiple choice catch.
 
 ## Education
 
@@ -211,32 +216,121 @@ excluded for having fewer than 9 or greater than 26 years of education.
 
 ## Number of subjects for analysis
 
-After all exclusions, there are 25 subjects left for analysis.
+After all exclusions, there are 28 subjects left for analysis.
 
-Check that the number of rows in the clean dataframe plus the number of
-rows in the excluded dataframe equal the number of rows in the raw data:
+<!-- ============================================================================= -->
+
+# Demographics
 
 ``` r
-df.excluded %<>% filter(!shqID %in% df$shqID)
-nrow(df.raw) - 2 == nrow(df) + nrow(df.excluded)
+# select demographics variables
+df.dem = df %>% 
+  select(shqID, recorded_date,
+         age, gender, gender_text, hand,
+         retired, occupation, edu_years, edu_degree, edu_degree_text,
+         eng_1st_lang, age_learned_eng, eng_fluency, number_lang, 
+         racialized, racialized_text, marginalized, marginalized_text,
+         starts_with("health"), starts_with("neuro"), starts_with("therapy"))
 ```
 
-    ## [1] TRUE
+<!-- ============================================================================= -->
 
-<!-- ======================================================================= -->
-
-# Run cleaning script on excluded participants
+# SAM
 
 ``` r
-# df.excluded %<>% filter(! subjectID %in% df$subjectID)
-# 
-# # run separate cleaning script
-# source("../cleaning/demo-cleaning-excluded.R")
+# create new dataframe that only contains SAM items
+df.sam = df %>% select(shqID, starts_with("sam"))
+
+# replace text in responses with numbers
+for (row in 1:nrow(df.sam)) {
+  for (col in 2:ncol(df.sam)) {
+    switch(df.sam[row, col],
+           "Strongly Disagree"           = {df.sam[row, col] = 1},
+           "Disagree Somewhat"           = {df.sam[row, col] = 2},
+           "Neither Agree nor Disagree"  = {df.sam[row, col] = 3},
+           "Agree Somewhat"              = {df.sam[row, col] = 4},
+           "Strongly Agree"              = {df.sam[row, col] = 5}
+           )
+  }
+}
+
+# change class of all variables from strings to numeric
+df.sam$shqID %<>% as.factor()
+df.sam %<>% mutate_if(is.character, as.numeric)
+
+# reverse coding
+sam.reverse = c("sam_episodic_1", "sam_episodic_2", 
+                "sam_semantic_2", "sam_semantic_5", 
+                "sam_spatial_3", "sam_spatial_4", "sam_future_6")
+
+for (i in 1:length(sam.reverse)) {
+  df.sam[ , (ncol(df.sam) + 1)] = NA # add an empty column for the reverse coded item
+  names(df.sam)[ncol(df.sam)] = paste0(sam.reverse[i], "r") # rename empty column
+  colToReverse = which(names(df.sam) == sam.reverse[i]) # retrieve index of item to be reversed
+  df.sam[ , ncol(df.sam)] = 6 - df.sam[ , colToReverse] # reverse code the item
+  df.sam[ , colToReverse] = NULL # remove the original item score
+}
+
+# reorder columns
+df.sam = df.sam[ , order(names(df.sam))] %>% 
+  select(shqID, everything())
+
+# load script to calculate domain scores
+source("sam-shq.R")
+```
+
+<!-- ============================================================================= -->
+
+# PHQ
+
+``` r
+# create new dataframe that only contains PHQ items
+df.phq = df %>% select(shqID, starts_with("phq"))
+
+# replace text in responses with numbers
+for (row in 1:nrow(df.phq)) {
+  for (col in 2:(ncol(df.phq)-1)) {
+    switch(df.phq[row, col],
+           "Not at all"              = {df.phq[row, col] = 0},
+           "Several days"            = {df.phq[row, col] = 1},
+           "More than half the days" = {df.phq[row, col] = 2},
+           "Nearly every day"        = {df.phq[row, col] = 3}
+           )
+  }
+}
+
+# change class of all variables from strings to numeric
+df.phq %<>% 
+  mutate_at(vars(phq_1, phq_2, phq_3, phq_4, phq_5, phq_6, phq_7, phq_8, phq_9), as.numeric)
+
+# total score
+df.phq$phq_total = df.phq %>%
+  select(starts_with("phq")) %>%
+  select(-c(phq_function, phq_covid)) %>%
+  rowSums()
+
+# reorder columns
+df.phq %<>% select(shqID,
+                   phq_1, phq_2, phq_3, phq_4, phq_5, phq_6, phq_7, phq_8, phq_9,
+                   phq_total, phq_function, phq_covid)
 ```
 
 <!-- ======================================================================= -->
 
 # Export data
+
+``` r
+df.clean = Reduce(function(x, y) merge(x, y, by = "shqID"), 
+                  list(df.dem,
+                       df.sam,
+                       df.phq))
+```
+
+``` r
+df.clean %>% 
+  write.csv(paste0("../data/qualtrics/", today, "-shq-qualtrics-clean.csv"),
+            row.names = FALSE)
+```
 
 ``` r
 varnames %>% 
@@ -245,17 +339,16 @@ varnames %>%
 ```
 
 ``` r
-# export subject IDs and email addresses
-subjectID = df %>% select(shqID, email, gift_card, do_not_contact, open_data)
+subjectID$clean = NA
 
-# insert something heree about adding a column as to whether subject made it into clean data and can be compensated
+for (i in 1:nrow(subjectID)) {
+  if (subjectID$shqID[i] %in% df.clean$shqID) {
+    subjectID$clean[i] = "yes"
+  } else {subjectID$clean[i] = "no"}
+}
 
 subjectID %>% 
   write_xlsx(paste0("../data/qualtrics/", today, "-shq-qualtrics-subjectID.xlsx"))
-```
-
-``` r
-# df$email = NULL
 ```
 
 <!-- ======================================================================= -->

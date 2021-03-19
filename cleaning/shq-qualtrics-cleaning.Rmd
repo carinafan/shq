@@ -13,7 +13,7 @@ output:
 # Set up 
 
 ```{r today}
-today = "2021-03-18"
+today = "2021-03-19"
 ```
 
 ```{r packages}
@@ -90,6 +90,10 @@ df = df[-c(1,2), ]
 
 # add "SHQ" to subject IDs
 df$shqID %<>% paste0("SHQ", .)
+
+# set aside subject IDs and emails and sort by date completed
+subjectID = df %>% 
+  select(shqID, email, gift_card, do_not_contact, open_data, recruitment, recruitment_text)
 ```
 
 
@@ -174,13 +178,6 @@ After excluding duplicate emails and catch fails, `r nrow(exclude.edu)` particip
 ## Number of subjects for analysis
 
 After all exclusions, there are `r nrow(df)` subjects left for analysis. 
-
-Check that the number of rows in the clean dataframe plus the number of rows in the excluded dataframe equal the number of rows in the raw data:
-
-```{r exclusion_check}
-df.excluded %<>% filter(!shqID %in% df$shqID)
-nrow(df.raw) - 2 == nrow(df) + nrow(df.excluded)
-```
 
 
 <!-- ============================================================================= -->
@@ -278,19 +275,11 @@ df.phq$phq_total = df.phq %>%
   select(starts_with("phq")) %>%
   select(-c(phq_function, phq_covid)) %>%
   rowSums()
-```
 
-
-<!-- ======================================================================= -->
-
-
-# Run cleaning script on excluded participants
-
-```{r clean_excluded}
-# df.excluded %<>% filter(! subjectID %in% df$subjectID)
-# 
-# # run separate cleaning script
-# source("../cleaning/demo-cleaning-excluded.R")
+# reorder columns
+df.phq %<>% select(shqID,
+                   phq_1, phq_2, phq_3, phq_4, phq_5, phq_6, phq_7, phq_8, phq_9,
+                   phq_total, phq_function, phq_covid)
 ```
 
 
@@ -299,27 +288,37 @@ df.phq$phq_total = df.phq %>%
 
 # Export data
 
+```{r merge}
+df.clean = Reduce(function(x, y) merge(x, y, by = "shqID"), 
+                  list(df.dem,
+                       df.sam,
+                       df.phq))
+```
+
+```{r export_clean_data}
+df.clean %>% 
+  write.csv(paste0("../data/qualtrics/", today, "-shq-qualtrics-clean.csv"),
+            row.names = FALSE)
+```
+
 ```{r export_varnames}
 varnames %>% 
   write.csv(paste0("../data/qualtrics/", today, "-shq-qualtrics-varnames.csv"),
                    row.names = FALSE)
 ```
 
-
 ```{r export_subjectID}
-# export subject IDs and email addresses
-subjectID = df %>% select(shqID, email, gift_card, do_not_contact, open_data, recruitment, recruitment_text)
+subjectID$clean = NA
 
-# insert something heree about adding a column as to whether subject made it into clean data and can be compensated
+for (i in 1:nrow(subjectID)) {
+  if (subjectID$shqID[i] %in% df.clean$shqID) {
+    subjectID$clean[i] = "yes"
+  } else {subjectID$clean[i] = "no"}
+}
 
 subjectID %>% 
   write_xlsx(paste0("../data/qualtrics/", today, "-shq-qualtrics-subjectID.xlsx"))
 ```
-
-```{r export_data}
-# df$email = NULL
-```
-
 
 
 <!-- ======================================================================= -->
