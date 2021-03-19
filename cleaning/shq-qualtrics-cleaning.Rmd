@@ -200,6 +200,54 @@ df.dem = df %>%
 ```
 
 
+<!-- ============================================================================= -->
+
+
+# SAM
+
+```{r sam}
+# create new dataframe that only contains SAM items
+df.sam = df %>% select(c(shqID, starts_with("sam")))
+
+# replace text in responses with numbers
+for (row in 1:nrow(df.sam)) {
+  for (col in 2:ncol(df.sam)) {
+    switch(df.sam[row, col],
+           "Strongly Disagree"           = {df.sam[row, col] = 1},
+           "Disagree Somewhat"           = {df.sam[row, col] = 2},
+           "Neither Agree nor Disagree"  = {df.sam[row, col] = 3},
+           "Agree Somewhat"              = {df.sam[row, col] = 4},
+           "Strongly Agree"              = {df.sam[row, col] = 5}
+           )
+  }
+}
+
+# change class of all variables from strings to numeric
+df.sam$shqID %<>% as.factor()
+df.sam %<>% mutate_if(is.character, as.numeric)
+
+# reverse coding
+sam.reverse = c("sam_episodic_1", "sam_episodic_2", 
+                "sam_semantic_2", "sam_semantic_5", 
+                "sam_spatial_3", "sam_spatial_4", "sam_future_6")
+
+for (i in 1:length(sam.reverse)) {
+  df.sam[ , (ncol(df.sam) + 1)] = NA # add an empty column for the reverse coded item
+  names(df.sam)[ncol(df.sam)] = paste0(sam.reverse[i], "r") # rename empty column
+  colToReverse = which(names(df.sam) == sam.reverse[i]) # retrieve index of item to be reversed
+  df.sam[ , ncol(df.sam)] = 6 - df.sam[ , colToReverse] # reverse code the item
+  df.sam[ , colToReverse] = NULL # remove the original item score
+}
+
+# reorder columns
+df.sam = df.sam[ , order(names(df.sam))] %>% 
+  select(shqID, everything())
+
+# load script to calculate domain scores
+source("sam-shq.R")
+```
+
+
 <!-- ======================================================================= -->
 
 
