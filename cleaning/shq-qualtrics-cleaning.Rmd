@@ -183,6 +183,23 @@ nrow(df.raw) - 2 == nrow(df) + nrow(df.excluded)
 ```
 
 
+<!-- ============================================================================= -->
+
+
+# Demographics
+
+```{r demographics}
+# select demographics variables
+df.dem = df %>% 
+  select(shqID, recorded_date,
+         age, gender, gender_text, hand,
+         retired, occupation, edu_years, edu_degree, edu_degree_text,
+         eng_1st_lang, age_learned_eng, eng_fluency, number_lang, 
+         racialized, racialized_text, marginalized, marginalized_text,
+         starts_with("health"), starts_with("neuro"), starts_with("therapy"))
+```
+
+
 <!-- ======================================================================= -->
 
 
@@ -210,7 +227,7 @@ varnames %>%
 
 ```{r export_subjectID}
 # export subject IDs and email addresses
-subjectID = df %>% select(shqID, email, gift_card, do_not_contact, open_data)
+subjectID = df %>% select(shqID, email, gift_card, do_not_contact, open_data, recruitment, recruitment_text)
 
 # insert something heree about adding a column as to whether subject made it into clean data and can be compensated
 
