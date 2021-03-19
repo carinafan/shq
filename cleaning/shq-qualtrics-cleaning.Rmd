@@ -207,7 +207,7 @@ df.dem = df %>%
 
 ```{r sam}
 # create new dataframe that only contains SAM items
-df.sam = df %>% select(c(shqID, starts_with("sam")))
+df.sam = df %>% select(shqID, starts_with("sam"))
 
 # replace text in responses with numbers
 for (row in 1:nrow(df.sam)) {
@@ -245,6 +245,39 @@ df.sam = df.sam[ , order(names(df.sam))] %>%
 
 # load script to calculate domain scores
 source("sam-shq.R")
+```
+
+
+<!-- ============================================================================= -->
+
+
+# PHQ
+
+```{r phq}
+# create new dataframe that only contains PHQ items
+df.phq = df %>% select(shqID, starts_with("phq"))
+
+# replace text in responses with numbers
+for (row in 1:nrow(df.phq)) {
+  for (col in 2:(ncol(df.phq)-1)) {
+    switch(df.phq[row, col],
+           "Not at all"              = {df.phq[row, col] = 0},
+           "Several days"            = {df.phq[row, col] = 1},
+           "More than half the days" = {df.phq[row, col] = 2},
+           "Nearly every day"        = {df.phq[row, col] = 3}
+           )
+  }
+}
+
+# change class of all variables from strings to numeric
+df.phq %<>% 
+  mutate_at(vars(phq_1, phq_2, phq_3, phq_4, phq_5, phq_6, phq_7, phq_8, phq_9), as.numeric)
+
+# total score
+df.phq$phq_total = df.phq %>%
+  select(starts_with("phq")) %>%
+  select(-c(phq_function, phq_covid)) %>%
+  rowSums()
 ```
 
 
