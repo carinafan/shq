@@ -1,11 +1,12 @@
 Sea Hero Quest: Qualtrics Data Cleaning
 ================
-Last updated: March 19, 2021
+Last updated: March 29, 2021
 
 -   [Set up](#set-up)
     -   [Rename variables](#rename-variables)
 -   [Exclusions](#exclusions)
     -   [Hardware](#hardware)
+    -   [Incomplete surveys](#incomplete-surveys)
     -   [Duplicate emails](#duplicate-emails)
     -   [Catch questions](#catch-questions)
     -   [Education](#education)
@@ -22,7 +23,7 @@ Last updated: March 19, 2021
 # Set up
 
 ``` r
-today = "2021-03-19"
+today = "2021-03-29"
 ```
 
 ``` r
@@ -154,12 +155,12 @@ subjectID %<>% arrange(desc(recorded_date))
 
 # Exclusions
 
-Before any exclusions, there are 31 survey responses.
+Before any exclusions, there are 39 survey responses.
 
 ``` r
 # remove variables that don't need to be in cleaned file
 df %<>%
-    select(-c(start_date, end_date, status, IPaddress, progress, 
+    select(-c(start_date, end_date, status, IPaddress,
               responseID, last_name, first_name, recipient_email, 
               external_reference, location_latitude, location_longitude,
               distribution_channel, user_language, consent))
@@ -179,6 +180,23 @@ df %<>% filter(!shqID %in% exclude.hardware$shqID)
 
 2 participants did not have the hardware requirements to play Sea Hero
 Quest and thus did not complete the study.
+
+## Incomplete surveys
+
+88% completion takes participants all the way up to the SHQ instructions
+page. So, keep only participants who have completed at least 88% of the
+survey.
+
+``` r
+df$progress %<>% as.numeric()
+
+exclude.incomplete = df %>% 
+  filter(progress < 88)
+
+df %<>% filter(!shqID %in% exclude.incomplete$shqID)
+```
+
+2 participants did not complete the Qualtrics survey.
 
 ## Duplicate emails
 
@@ -217,8 +235,8 @@ df %<>% filter(!shqID %in% exclude.catchT |
                !shqID %in% exclude.catchM)
 ```
 
-After excluding duplicate emails, 1 participants failed the text catch
-and 1 participants failed the multiple choice catch.
+After excluding duplicate emails, 0 participants failed the text catch
+and 0 participants failed the multiple choice catch.
 
 ## Education
 
@@ -236,7 +254,7 @@ excluded for having fewer than 9 or greater than 26 years of education.
 
 ## Number of subjects for analysis
 
-After all exclusions, there are 28 subjects left for analysis.
+After all exclusions, there are 35 subjects left for analysis.
 
 <!-- ============================================================================= -->
 

@@ -13,7 +13,7 @@ output:
 # Set up 
 
 ```{r today}
-today = "2021-03-19"
+today = "2021-03-29"
 ```
 
 ```{r packages}
@@ -112,7 +112,7 @@ Before any exclusions, there are `r nrow(df)` survey responses.
 ```{r exclusions}
 # remove variables that don't need to be in cleaned file
 df %<>%
-	select(-c(start_date, end_date, status, IPaddress, progress, 
+	select(-c(start_date, end_date, status, IPaddress,
 	          responseID, last_name, first_name, recipient_email, 
 	          external_reference, location_latitude, location_longitude,
 	          distribution_channel, user_language, consent))
@@ -131,6 +131,21 @@ df %<>% filter(!shqID %in% exclude.hardware$shqID)
 ```
 
 `r nrow(exclude.hardware)` participants did not have the hardware requirements to play Sea Hero Quest and thus did not complete the study. 
+
+## Incomplete surveys
+
+88\% completion takes participants all the way up to the SHQ instructions page. So, keep only participants who have completed at least 88\% of the survey.
+
+```{r exclude_incomplete}
+df$progress %<>% as.numeric()
+
+exclude.incomplete = df %>% 
+  filter(progress < 88)
+
+df %<>% filter(!shqID %in% exclude.incomplete$shqID)
+```
+
+`r nrow(exclude.incomplete)` participants did not complete the Qualtrics survey.
 
 ## Duplicate emails
 
